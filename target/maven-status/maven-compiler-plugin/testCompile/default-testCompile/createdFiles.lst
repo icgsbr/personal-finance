@@ -1,0 +1,7 @@
+com/finance/integration/FinanceServiceIntegrationTest.class
+com/finance/integration/BackupIntegrationTest.class
+com/finance/model/ModelTest.class
+com/finance/service/BackupServiceTest.class
+com/finance/service/FinanceServiceTest.class
+com/finance/model/DebtTest.class
+com/finance/integration/RepositoryIntegrationTest.class

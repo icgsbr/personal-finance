@@ -1,0 +1,200 @@
+name: Build Installers
+
+on:
+  push:
+    tags:
+      - "v*"           # dispara em: git tag v1.0.0 && git push --tags
+  workflow_dispatch:   # permite rodar manualmente pela UI do GitHub
+
+jobs:
+
+  # ── macOS → .dmg ────────────────────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+
+      - name: Build JAR
+        run: mvn clean package -DskipTests -q
+
+      - name: jpackage → dmg
+        run: |
+          jpackage \
+            --input          target/ \
+            --main-jar       personal-finance.jar \
+            --main-class     com.finance.Launcher \
+            --app-version    1.0.0 \
+            --vendor         "Personal Finance" \
+            --dest           dist/ \
+            --name           FinancasPessoais \
+            --type           dmg \
+            --mac-package-name "FinancasPessoais" \
+            --mac-package-identifier "com.finance.personal" \
+            --java-options   "--add-opens=java.base/java.lang=ALL-UNNAMED" \
+            --java-options   "--add-opens=java.base/java.util=ALL-UNNAMED" \
+            --java-options   "--add-opens=java.base/java.io=ALL-UNNAMED" \
+            --java-options   "-Dfile.encoding=UTF-8" \
+            --java-options   "-Djava.awt.headless=false"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: dist/*.dmg
+
+  # ── Linux → .deb + .rpm ─────────────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+
+      - name: Instala dependências do jpackage
+        run: sudo apt-get install -y fakeroot binutils
+
+      - name: Build JAR
+        run: mvn clean package -DskipTests -q
+
+      - name: jpackage → deb
+        run: |
+          jpackage \
+            --input          target/ \
+            --main-jar       personal-finance.jar \
+            --main-class     com.finance.Launcher \
+            --app-version    1.0.0 \
+            --vendor         "Personal Finance" \
+            --dest           dist/ \
+            --name           FinancasPessoais \
+            --type           deb \
+            --linux-package-name financas-pessoais \
+            --linux-app-category Finance \
+            --linux-shortcut \
+            --java-options   "--add-opens=java.base/java.lang=ALL-UNNAMED" \
+            --java-options   "--add-opens=java.base/java.util=ALL-UNNAMED" \
+            --java-options   "--add-opens=java.base/java.io=ALL-UNNAMED" \
+            --java-options   "-Dfile.encoding=UTF-8" \
+            --java-options   "-Djava.awt.headless=false"
+
+      - name: jpackage → rpm
+        run: |
+          sudo apt-get install -y rpm
+          jpackage \
+            --input          target/ \
+            --main-jar       personal-finance.jar \
+            --main-class     com.finance.Launcher \
+            --app-version    1.0.0 \
+            --vendor         "Personal Finance" \
+            --dest           dist/ \
+            --name           FinancasPessoais \
+            --type           rpm \
+            --linux-package-name financas-pessoais \
+            --linux-app-category Finance \
+            --linux-shortcut \
+            --java-options   "--add-opens=java.base/java.lang=ALL-UNNAMED" \
+            --java-options   "--add-opens=java.base/java.util=ALL-UNNAMED" \
+            --java-options   "--add-opens=java.base/java.io=ALL-UNNAMED" \
+            --java-options   "-Dfile.encoding=UTF-8" \
+            --java-options   "-Djava.awt.headless=false"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: dist/*.{deb,rpm}
+
+  # ── Windows → .msi + .exe ───────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+
+      - name: Build JAR
+        run: mvn clean package -DskipTests -q
+
+      - name: jpackage → msi
+        run: |
+          jpackage `
+            --input          target\ `
+            --main-jar       personal-finance.jar `
+            --main-class     com.finance.Launcher `
+            --app-version    1.0.0 `
+            --vendor         "Personal Finance" `
+            --dest           dist\ `
+            --name           FinancasPessoais `
+            --type           msi `
+            --win-dir-chooser `
+            --win-menu `
+            --win-menu-group "Personal Finance" `
+            --win-shortcut `
+            --win-upgrade-uuid "a1b2c3d4-e5f6-7890-abcd-ef1234567890" `
+            --java-options   "--add-opens=java.base/java.lang=ALL-UNNAMED" `
+            --java-options   "--add-opens=java.base/java.util=ALL-UNNAMED" `
+            --java-options   "--add-opens=java.base/java.io=ALL-UNNAMED" `
+            --java-options   "-Dfile.encoding=UTF-8" `
+            --java-options   "-Djava.awt.headless=false"
+
+      - name: jpackage → exe
+        run: |
+          jpackage `
+            --input          target\ `
+            --main-jar       personal-finance.jar `
+            --main-class     com.finance.Launcher `
+            --app-version    1.0.0 `
+            --vendor         "Personal Finance" `
+            --dest           dist\ `
+            --name           FinancasPessoais-Setup `
+            --type           exe `
+            --win-dir-chooser `
+            --win-menu `
+            --win-menu-group "Personal Finance" `
+            --win-shortcut `
+            --win-upgrade-uuid "a1b2c3d4-e5f6-7890-abcd-ef1234567890" `
+            --java-options   "--add-opens=java.base/java.lang=ALL-UNNAMED" `
+            --java-options   "--add-opens=java.base/java.util=ALL-UNNAMED" `
+            --java-options   "--add-opens=java.base/java.io=ALL-UNNAMED" `
+            --java-options   "-Dfile.encoding=UTF-8" `
+            --java-options   "-Djava.awt.headless=false"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers
+          path: dist\*.{msi,exe}
+
+  # ── Release — junta tudo e publica ──────────────────────────────────────────
+  release:
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Publica Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Finanças Pessoais ${{ github.ref_name }}"
+          body: |
+            ## Instaladores
+
+            | Plataforma | Arquivo |
+            |---|---|
+            | macOS | `FinancasPessoais-1.0.0.dmg` |
+            | Linux (Debian/Ubuntu) | `financas-pessoais_1.0.0_amd64.deb` |
+            | Linux (Fedora/RHEL) | `financas-pessoais-1.0.0-1.x86_64.rpm` |
+            | Windows | `FinancasPessoais-1.0.0.msi` / `FinancasPessoais-Setup-1.0.0.exe` |
+          files: artifacts/**/*
